@@ -7,9 +7,6 @@ from keras.utils import image_dataset_from_directory
 from sklearn.metrics import accuracy_score
 
 import matplotlib.pyplot as plt
-import cv2
-import os
-import numpy as np
 
 
 train_path =  "/Users/kevinpham/radiology/scans/Training"
@@ -34,7 +31,7 @@ test_ds = get_dataset(test_path)
 # build the model
 # model = Sequential(
 #     [
-#         Input(shape=(256, 256, 1)),
+#         Input(shape=(256, 256, 3)),
 #         Conv2D(32, (3, 3), activation='relu'),
 #         MaxPooling2D((2, 2)),
 #         Flatten(),
@@ -69,7 +66,7 @@ model.summary()
 
 # compile and train
 model.compile(loss='sparse_categorical_crossentropy',optimizer='Adam',metrics=['accuracy'])
-history = model.fit(train_ds, epochs=20,validation_data=test_ds)
+history = model.fit(train_ds, epochs=20, validation_data=test_ds)
 
 # plot
 plt.title('Training Accuracy vs Validation Accuracy')
