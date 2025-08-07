@@ -29,44 +29,45 @@ print('processing testing images')
 test_ds = get_dataset(test_path)
 
 # build the model
-# model = Sequential(
-#     [
-#         Input(shape=(256, 256, 3)),
-#         Conv2D(32, (3, 3), activation='relu'),
-#         MaxPooling2D((2, 2)),
-#         Flatten(),
-#         Dense(4, activation='softmax')
-#     ]
-# )
-
 model = Sequential(
     [
         Input(shape=(256, 256, 3)),
         Conv2D(32, (3, 3), activation='relu'),
-        BatchNormalization(), 
         MaxPooling2D((2, 2)),
-
-        # Conv2D(128, kernel_size=(3, 3), activation='relu'),
-        # BatchNormalization(), 
-        # MaxPooling2D((2, 2)),
-
-        # Conv2D(256, kernel_size=(3, 3), activation='relu'),
-        # BatchNormalization(), 
-        # MaxPooling2D((2, 2)),
-
         Flatten(),
-        # Dense(256, activation='softmax'),
-        # Dense(128, activation='softmax'),
-        # Dense(64, activation='softmax'),
         Dense(4, activation='softmax')
     ]
 )
+
+# model = Sequential(
+#     [
+#         Input(shape=(256, 256, 3)),
+#         Conv2D(32, (3, 3), activation='relu'),
+#         # Conv2D(64, (3, 3), activation='relu'),
+#         BatchNormalization(), 
+#         MaxPooling2D((2, 2)),
+
+#         # Conv2D(128, kernel_size=(3, 3), activation='relu'),
+#         # BatchNormalization(), 
+#         # MaxPooling2D((2, 2)),
+
+#         # Conv2D(256, kernel_size=(3, 3), activation='relu'),
+#         # BatchNormalization(), 
+#         # MaxPooling2D((2, 2)),
+
+#         Flatten(),
+#         # Dense(256, activation='softmax'),
+#         # Dense(128, activation='softmax'),
+#         # Dense(64, activation='softmax'),
+#         Dense(4, activation='softmax')
+#     ]
+# )
 
 model.summary()
 
 # compile and train
 model.compile(loss='sparse_categorical_crossentropy',optimizer='Adam',metrics=['accuracy'])
-history = model.fit(train_ds, epochs=20, validation_data=test_ds)
+history = model.fit(train_ds, epochs=10, validation_data=test_ds)
 
 # plot
 plt.title('Training Accuracy vs Validation Accuracy')
