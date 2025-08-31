@@ -7,138 +7,82 @@ from keras.callbacks import TensorBoard
 import datetime
 
 from sklearn.metrics import accuracy_score
-
 import matplotlib.pyplot as plt
 
 
-train_path =  "scans/Training"
-test_path =  "scans/Testing"
+class CNNModel:
+    def __init__(self, shape=(256, 256, 3), num_conv_layers=1, num_dense_layers=0):
+        self.model = Sequential()
+        self.model.add(Input(shape=shape))
+        self.num_conv_layers = num_conv_layers
+        self.num_dense_layers = num_dense_layers
 
-log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-
-tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
-
-def get_dataset(dataset_path):
-    ds = image_dataset_from_directory(
-        directory=dataset_path,
-        labels='inferred',
-        label_mode='int',
-        batch_size=64,
-        image_size=(256, 256),
-    )
-    return ds
-
-
-print('loading traing images')
-train_ds = get_dataset(train_path)
-print('processing testing images')
-test_ds = get_dataset(test_path)
-
-
-
-# barebones CNN
-model = Sequential(
-    [
-        Input(shape=(256, 256, 3)),
-
+    def _add_conv_layer(self, filters, kernel_size=(3, 3), activation='relu'):
         # Slides filters across the height and width of an image to produce feature maps.
-        Conv2D(32, (3, 3)),  
-        BatchNormalization(),
-        Activation('relu'),
+        self.model.add(Conv2D(filters, kernel_size))
+        self.model.add(BatchNormalization())
+        self.model.add(Activation(activation))
 
         # Takes max value in each patch of each feature map to highlight the most important features
-        MaxPooling2D((2, 2)),    
+        self.model.add(MaxPooling2D((2, 2)))
+    
+    def _add_dense_layer(self, units, activation='relu'):
+        self.model.add(Dense(units, activation=activation))
+    
+    def build(self):
+        for i in range(self.num_conv_layers):
+            self._add_conv_layer(filters=(2**i)*32)
+        
+        self.model.add(Flatten())
 
-        Flatten(),                
-        Dense(4, activation='softmax') # seperate into 4 classes
-    ]
-)
+        for _ in range(self.num_dense_layers):
+            self._add_dense_layer(64)
+            self.model.add(Dropout(0.5))
+        
+        self._add_dense_layer(4, activation='softmax') # separate into the 4 classes
 
-# # barebones CNN with dropout and another dense layer
-# model = Sequential(
-#     [
-#         Input(shape=(256, 256, 3)),
+        return self.model
+    
+if __name__ == "__main__":
+    train_path =  "scans/Training"
+    test_path =  "scans/Testing"
 
-#         # Slides filters across the height and width of an image to produce feature maps.
-#         Conv2D(32, (3, 3)),  
-#         BatchNormalization(),
-#         Activation('relu'),
-
-#         # Takes max value in each patch of each feature map to highlight the most important features
-#         MaxPooling2D((2, 2)),    
-
-#         Flatten(),                
-#         Dense(4, activation='softmax') # seperate into 4 classes
-#     ]
-# )
-
-# # CNN with more layers 
-# model = Sequential(
-#     [
-#         Input(shape=(256, 256, 3)),
-
-#         # Slides filters across the height and width of an image to produce feature maps.
-#         Conv2D(32, (3, 3)),  
-#         BatchNormalization(),
-#         Activation('relu'),
-
-#         # Takes max value in each patch of each feature map to highlight the most important features
-#         MaxPooling2D((2, 2)),    
-
-#         # Slides filters across the height and width of an image to produce feature maps.
-#         Conv2D(64, (3, 3)),  
-#         BatchNormalization(),
-#         Activation('relu'),
-
-#         # Takes max value in each patch of each feature map to highlight the most important features
-#         MaxPooling2D((2, 2)),   
-
-#         Flatten(),                
-#         Dense(4, activation='softmax') # seperate into 4 classes
-#     ]
-# )
-
-# # CNN with more layers and dense layer
-# model = Sequential(
-#     [
-#         Input(shape=(256, 256, 3)),
-
-#         # Slides filters across the height and width of an image to produce feature maps.
-#         Conv2D(32, (3, 3)),  
-#         BatchNormalization(),
-#         Activation('relu'),
-
-#         # Takes max value in each patch of each feature map to highlight the most important features
-#         MaxPooling2D((2, 2)),    
-
-#         # Slides filters across the height and width of an image to produce feature maps.
-#         Conv2D(64, (3, 3)),  
-#         BatchNormalization(),
-#         Activation('relu'),
-
-#         # Takes max value in each patch of each feature map to highlight the most important features
-#         MaxPooling2D((2, 2)),   
-
-#         Flatten(),                
-#         Dense(4, activation='softmax') # seperate into 4 classes
-#     ]
-# )
+    def get_dataset(dataset_path):
+        ds = image_dataset_from_directory(
+            directory=dataset_path,
+            labels='inferred',
+            label_mode='int',
+            batch_size=64,
+            image_size=(256, 256),
+        )
+        return ds
 
 
-model.summary()
+    print('loading traing images')
+    train_ds = get_dataset(train_path)
+    print('processing testing images')
+    test_ds = get_dataset(test_path)
 
-# compile and train
-model.compile(loss='sparse_categorical_crossentropy', optimizer='Adam', metrics=['accuracy'])
-history = model.fit(train_ds, epochs=1, validation_data=test_ds, callbacks=[tensorboard_callback])
+    log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
+    tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
 
-# plot
-# plt.title('Training Accuracy vs Validation Accuracy')
+    cnn = CNNModel(num_conv_layers=2, num_dense_layers=1)
+    model = cnn.build()
+    model.summary()
 
-# print(history.history['accuracy'])
-# print(history.history['val_accuracy'])
+    # compile and train
+    model.compile(loss='sparse_categorical_crossentropy', optimizer='Adam', metrics=['accuracy'])
 
-# plt.plot(history.history['accuracy'], color='red',label='Train')
-# plt.plot(history.history['val_accuracy'], color='blue',label='Validation')
+    history = model.fit(train_ds, epochs=10, validation_data=test_ds, callbacks=[tensorboard_callback])
 
-# plt.legend()
-# plt.show()
+    # plot
+    # plt.title('Training Accuracy vs Validation Accuracy')
+
+    # print(history.history['accuracy'])
+    # print(history.history['val_accuracy'])
+
+    # plt.plot(history.history['accuracy'], color='red',label='Train')
+    # plt.plot(history.history['val_accuracy'], color='blue',label='Validation')
+
+    # plt.legend()
+    # plt.show()
