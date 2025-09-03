@@ -1,77 +1,74 @@
-import tensorflow as tf
-from tensorflow import keras
 from keras import Sequential
 from keras.layers import Dense, Flatten, Input, Conv2D, MaxPooling2D, BatchNormalization, Dropout, Activation
 from keras.utils import image_dataset_from_directory
 from keras.callbacks import TensorBoard
-import datetime
+from datetime import datetime
 
 from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
 
 
 class CNNModel:
-    def __init__(self, shape=(256, 256, 3), num_conv_layers=1, num_dense_layers=0):
-        self.model = Sequential()
-        self.model.add(Input(shape=shape))
+    def __init__(self, shape=(256, 256, 3), num_conv_layers=1, hidden_layer=False, normalize=True):
+        self.model = Sequential(Input(shape=shape))
         self.num_conv_layers = num_conv_layers
-        self.num_dense_layers = num_dense_layers
+        self.hidden_layer = hidden_layer
+        self.normalize = normalize
 
-    def _add_conv_layer(self, filters, kernel_size=(3, 3), activation='relu'):
+    def _add_conv_layer(self, filters, kernel_size=(3, 3), activation='relu', normalize=True, pool_size=(2, 2)):
         # Slides filters across the height and width of an image to produce feature maps.
         self.model.add(Conv2D(filters, kernel_size))
-        self.model.add(BatchNormalization())
+        if normalize:
+            self.model.add(BatchNormalization())
         self.model.add(Activation(activation))
 
         # Takes max value in each patch of each feature map to highlight the most important features
-        self.model.add(MaxPooling2D((2, 2)))
-    
-    def _add_dense_layer(self, units, activation='relu'):
-        self.model.add(Dense(units, activation=activation))
+        self.model.add(MaxPooling2D(pool_size=pool_size))
     
     def build(self):
         for i in range(self.num_conv_layers):
-            self._add_conv_layer(filters=(2**i)*32)
+            self._add_conv_layer(filters=(2**i)*32, normalize=self.normalize)
         
         self.model.add(Flatten())
 
-        for _ in range(self.num_dense_layers):
-            self._add_dense_layer(64)
+        if self.hidden_layer:
+            self.model.add(Dense(512, activation='relu'))
             self.model.add(Dropout(0.5))
         
         self._add_dense_layer(4, activation='softmax') # separate into the 4 classes
 
         return self.model
     
-if __name__ == "__main__":
-    train_path =  "scans/Training"
-    test_path =  "scans/Testing"
-
-    def get_dataset(dataset_path):
+def get_dataset(dataset_path):
         ds = image_dataset_from_directory(
             directory=dataset_path,
             labels='inferred',
             label_mode='int',
             batch_size=64,
-            image_size=(256, 256),
+            image_size=image_size,
         )
         return ds
-
+    
+if __name__ == "__main__":
+    train_path =  "scans/Training"
+    test_path =  "scans/Testing"
+    image_size = (150, 150)  
+    input_shape = image_size + (3,)
 
     print('loading traing images')
     train_ds = get_dataset(train_path)
     print('processing testing images')
     test_ds = get_dataset(test_path)
 
-    log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
+    log_dir = "logs/fit/" + datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
     tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
 
-    cnn = CNNModel(num_conv_layers=2, num_dense_layers=1)
+    cnn = CNNModel(num_conv_layers=3, hidden_layer=False, shape=input_shape, normalize=False)
     model = cnn.build()
     model.summary()
 
     # compile and train
-    model.compile(loss='sparse_categorical_crossentropy', optimizer='Adam', metrics=['accuracy'])
+    model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
     history = model.fit(train_ds, epochs=10, validation_data=test_ds, callbacks=[tensorboard_callback])
 
