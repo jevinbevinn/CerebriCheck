@@ -1,6 +1,6 @@
 from keras.applications import EfficientNetB0
 from keras import Sequential
-from keras.layers import GlobalAveragePooling2D, Dense, Dropout, Input
+from keras.layers import GlobalAveragePooling2D, Dense, Dropout, Conv2D
 from keras.utils import image_dataset_from_directory
 from keras.callbacks import TensorBoard
 from datetime import datetime
@@ -19,6 +19,7 @@ class PretrainedEfficientNetB0:
         # Create Sequential model without explicit Input layer
         model = Sequential([
             base_model,
+            Conv2D(32, (3,3), activation='relu'),
             GlobalAveragePooling2D(),
             Dense(128, activation=activation),
             Dropout(0.5),

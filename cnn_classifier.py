@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 
 class CNNModel:
     def __init__(self, shape=(256, 256, 3), num_conv_layers=1, hidden_layer=False, normalize=True):
-        self.model = Sequential(Input(shape=shape))
+        self.model = Sequential()
+        self.model.add(Input(shape=shape))
         self.num_conv_layers = num_conv_layers
         self.hidden_layer = hidden_layer
         self.normalize = normalize
@@ -35,24 +36,24 @@ class CNNModel:
             self.model.add(Dense(512, activation='relu'))
             self.model.add(Dropout(0.5))
         
-        self._add_dense_layer(4, activation='softmax') # separate into the 4 classes
+        self.model.add(Dense(4, activation='softmax')) # separate into the 4 classes
 
         return self.model
     
 def get_dataset(dataset_path):
-        ds = image_dataset_from_directory(
-            directory=dataset_path,
-            labels='inferred',
-            label_mode='int',
-            batch_size=64,
-            image_size=image_size,
-        )
-        return ds
+    ds = image_dataset_from_directory(
+        directory=dataset_path,
+        labels='inferred',
+        label_mode='int',
+        batch_size=64,
+        image_size=image_size,
+    )
+    return ds
     
 if __name__ == "__main__":
     train_path =  "scans/Training"
     test_path =  "scans/Testing"
-    image_size = (150, 150)  
+    image_size = (256, 256)  
     input_shape = image_size + (3,)
 
     print('loading traing images')
@@ -63,14 +64,14 @@ if __name__ == "__main__":
     log_dir = "logs/fit/" + datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
     tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
 
-    cnn = CNNModel(num_conv_layers=3, hidden_layer=False, shape=input_shape, normalize=False)
+    cnn = CNNModel(num_conv_layers=1, hidden_layer=False, normalize=False)
     model = cnn.build()
     model.summary()
 
     # compile and train
     model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
-    history = model.fit(train_ds, epochs=10, validation_data=test_ds, callbacks=[tensorboard_callback])
+    history = model.fit(train_ds, epochs=20, validation_data=test_ds, callbacks=[tensorboard_callback])
 
     # plot
     # plt.title('Training Accuracy vs Validation Accuracy')
